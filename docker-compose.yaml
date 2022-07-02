@@ -343,11 +343,6 @@ services:
      - zabbix-database
      - mysql-database
 
- db_data_mysql:
-  image: busybox
-  volumes:
-   - ./zbx_env/var/lib/mysql:/var/lib/mysql:rw
-
 networks:
   zbx_net_frontend:
     driver: bridge
