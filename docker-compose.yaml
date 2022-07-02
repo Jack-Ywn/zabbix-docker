@@ -328,7 +328,7 @@ services:
    - --mysqlx_max_connections=2000   
 #   - --require-secure-transport
   volumes:
-   - ./zbx_env/var/lib/mysql:/var/lib/mysql:rw
+   - ./mysql:/var/lib/mysql:rw
   env_file:
    - ./env_vars/.env_db_mysql
   secrets:
