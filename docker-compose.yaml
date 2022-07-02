@@ -238,6 +238,7 @@ services:
  zabbix-java-gateway:
   image: zabbix/zabbix-java-gateway:alpine-6.0-latest
   container_name: zabbix-java-gateway
+  restart: always  
   profiles:
    - full
    - all
@@ -262,6 +263,7 @@ services:
 
  zabbix-snmptraps:
   image: zabbix/zabbix-snmptraps:alpine-6.0-latest
+  restart: always  
   container_name: zabbix-snmptraps
   profiles:
    - full
@@ -288,6 +290,7 @@ services:
  zabbix-web-service:
   image: zabbix/zabbix-web-service:alpine-6.0-latest
   container_name: zabbix-web-service
+  restart: always
   profiles:
    - full
    - all
@@ -317,6 +320,7 @@ services:
  mysql-server:
   image: mysql:8.0
   container_name: zabbix-db
+  restart: always  
   command:
    - mysqld
 #   - --port=3306  
