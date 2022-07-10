@@ -71,7 +71,7 @@ docker-compose_v3_ubuntu_pgsql_local.yaml	#本地构建和运行基于Ubuntu的Z
 
 ## [使用国内下载站点部署](https://drive.yangwn.top/AliDrive/Linux/Docker/Zabbix)
 
-- 下载并且导入容器
+- 下载并且导入镜像
 
 ```shell
 wget https://drive.yangwn.top/d/AliDrive/Linux/Docker/Zabbix/zabbix-image-6.0.tar.gz
