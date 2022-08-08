@@ -179,13 +179,31 @@ docker-compose --profile=all restart
 #拷贝Windows字体（微软雅黑、仿宋常规字体均可以解决）
 C:\Windows\Fonts
 
-#容器名称
-zabbix-web-nginx
+#将字体目录映射到宿主机
+vim docker-compose.yaml
+ zabbix-web-nginx-mysql:
+  image: zabbix/zabbix-web-nginx-mysql:centos-6.0-latest
+  container_name: zabbix-web-nginx
+  restart: always
+  ports:
+   - "80:8080"
+#   - "443:8443"
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - /etc/timezone:/etc/timezone:ro
+   - ./zbx_env/etc/ssl/nginx:/etc/ssl/nginx:ro
+   - ./zbx_env/usr/share/zabbix/modules/:/usr/share/zabbix/modules/:ro
+   - ./zbx_env/usr/share/zabbix/assets/fonts/:/usr/share/zabbix/assets/fonts/:ro #字体目录
+
+#关闭Zabbix容器
+docker-compose --profile=all down
+
+#运行Zabbix容器
+docker-compose --profile=all up -d
 
 #将字体拷贝到容器内部
 wget --no-check-certificate https://drive.yangwn.top/d/AliDrive/Linux/Docker/Zabbix/msyh.ttc
-
-docker cp msyh.ttc zabbix-web-nginx:/usr/share/zabbix/assets/fonts/DejaVuSans.ttf
+mv msyh.ttc ./zbx_env/usr/share/zabbix/assets/fonts/DejaVuSans.ttf
 ```
 
 
