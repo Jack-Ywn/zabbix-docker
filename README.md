@@ -3,7 +3,7 @@
 - 基础`YUM`源和优化系统
 
 ```shell
-#此脚本能优化CentOS7、8的系统(非必要操作)
+#此脚本能优化CentOS7、8的系统（非必要操作）
 curl -L https://drive.swireb.cn/d/Shell/system.sh | sh
 
 #docker软件源
