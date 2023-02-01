@@ -3,8 +3,8 @@
 - 基础`YUM`源和优化系统
 
 ```shell
-#此脚本能优化CentOS6、7、8的系统
-curl -L https://drive.yangwn.top/d/AliDrive/Shell/system.sh | sh
+#此脚本能优化CentOS7、8的系统(非必要操作)
+curl -L https://drive.swireb.cn/d/Shell/system.sh | sh
 
 #docker软件源
 wget -O /etc/yum.repos.d/docker-ce.repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
@@ -52,20 +52,20 @@ docker-compose -v
 - [官方启动yaml文件（参考）](https://github.com/zabbix/zabbix-docker)
 - [本人启动yaml文件（推荐）](https://github.com/Jack-Ywn/zabbix-docker)        
 
-- [下载并且导入容器镜像](https://drive.yangwn.top/AliDrive/Linux/Docker/Zabbix/images)
+- [下载并且导入容器镜像](https://drive.swireb.cn/Linux/Docker/Zabbix/images)
 
 ```shell
 #网络状况比较好的情况可以不用导入
 
 #导入alpine系统的容器镜像（默认的）
-wget --no-check-certificate https://drive.yangwn.top/d/AliDrive/Linux/Docker/Zabbix/images/zabbix-image-6.0.tar.gz
+wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/images/zabbix-image-6.0.tar.gz
 tar xf zabbix-image-6.0.tar.gz
 cd zabbix-image-6.0
 ./docker_load.sh
 docker image ls -a
 
 #导入centos系统的容器镜像（需要修改docker-compose.yaml的启动镜像）
-wget --no-check-certificate https://drive.yangwn.top/d/AliDrive/Linux/Docker/Zabbix/images/zabbix-image-6.0-centos.tar.gz
+wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/images/zabbix-image-6.0-centos.tar.gz
 tar xf zabbix-image-6.0-centos.tar.gz
 cd zabbix-image-6.0-centos
 ./docker_load.sh
@@ -75,7 +75,7 @@ docker image ls -a
 - 下载并且解压部署文件
 
 ```shell
-wget --no-check-certificate https://drive.yangwn.top/d/AliDrive/Linux/Docker/Zabbix/zabbix-docker.tar.gz
+wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/zabbix-docker.tar.gz
 tar xf zabbix-docker.tar.gz
 cd zabbix-docker
 ```
@@ -130,7 +130,7 @@ docker inspect zabbix-agent | grep IPAddress
 
 ```shell
 #通过脚本安装Agent2（支持CentOS7、Centos8）
-wget --no-check-certificate https://drive.yangwn.top/d/AliDrive/Shell/install-agent2.sh
+wget --no-check-certificate https://drive.swireb.cn/d/Shell/install-agent2.sh
 
 sh install-agent2.sh
 ```
@@ -202,7 +202,7 @@ docker-compose --profile=all down
 docker-compose --profile=all up -d
 
 #将字体拷贝到容器内部
-wget --no-check-certificate https://drive.yangwn.top/d/AliDrive/Linux/Docker/Zabbix/msyh.ttc
+wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/msyh.ttc
 mv msyh.ttc ./zbx_env/usr/share/zabbix/assets/fonts/DejaVuSans.ttf
 ```
 
