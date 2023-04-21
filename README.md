@@ -36,7 +36,7 @@ systemctl daemon-reload && systemctl enable --now docker
 
 ```shell
 #下载二进制文件
-curl -L https://get.daocloud.io/docker/compose/releases/download/v2.6.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+wget -P /usr/local/bin https://drive.swireb.cn/d/Linux/Docker/docker-compose  &>/dev/null
 
 #赋予执行权限
 chmod +x /usr/local/bin/docker-compose
