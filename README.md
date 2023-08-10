@@ -4,7 +4,7 @@
 
 ```shell
 #此脚本能优化CentOS7、8的系统（非必要操作）
-curl -L https://drive.swireb.cn/d/Shell/system.sh | sh
+bash <(curl -sSL https://linuxmirrors.cn/main.sh)
 
 #docker软件源
 wget -O /etc/yum.repos.d/docker-ce.repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
