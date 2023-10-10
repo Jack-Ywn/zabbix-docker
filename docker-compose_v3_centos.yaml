@@ -1,7 +1,7 @@
 version: '3.5'
 services:
  zabbix-server:
-  image: zabbix/zabbix-server-mysql:centos-6.0-latest
+  image: zabbix/zabbix-server-mysql:centos-4.0-latest
   ports:
    - "10051:10051"
   volumes:
@@ -53,9 +53,9 @@ services:
    - net.ipv4.conf.all.accept_redirects=0
    - net.ipv4.conf.all.secure_redirects=0
    - net.ipv4.conf.all.send_redirects=0
-   
+
  zabbix-proxy-sqlite3:
-  image: zabbix/zabbix-proxy-sqlite3:centos-6.0-latest
+  image: zabbix/zabbix-proxy-sqlite3:centos-4.0-latest
   profiles:
    - all
   ports:
@@ -98,7 +98,7 @@ services:
   stop_grace_period: 30s
 
  zabbix-proxy-mysql:
-  image: zabbix/zabbix-proxy-mysql:centos-6.0-latest
+  image: zabbix/zabbix-proxy-mysql:centos-4.0-latest
   profiles:
    - all
   ports:
@@ -148,7 +148,7 @@ services:
   stop_grace_period: 30s
 
  zabbix-web-nginx-mysql:
-  image: zabbix/zabbix-web-nginx-mysql:centos-6.0-latest
+  image: zabbix/zabbix-web-nginx-mysql:centos-4.0-latest
   ports:
    - "80:8080"
 #   - "443:8443"
@@ -156,7 +156,6 @@ services:
    - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
    - ./zbx_env/etc/ssl/nginx:/etc/ssl/nginx:ro
-   - ./zbx_env/usr/share/zabbix/modules/:/usr/share/zabbix/modules/:ro
   deploy:
    resources:
     limits:
@@ -175,7 +174,7 @@ services:
    - mysql-server
    - zabbix-server
   healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+   test: ["CMD", "curl", "-f", "http://localhost:8080/"]
    interval: 10s
    timeout: 5s
    retries: 3
@@ -192,7 +191,7 @@ services:
    - net.core.somaxconn=65535
 
  zabbix-agent:
-  image: zabbix/zabbix-agent:centos-6.0-latest
+  image: zabbix/zabbix-agent:centos-4.0-latest
   volumes:
    - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
@@ -217,7 +216,7 @@ services:
   stop_grace_period: 5s
 
  zabbix-java-gateway:
-  image: zabbix/zabbix-java-gateway:centos-6.0-latest
+  image: zabbix/zabbix-java-gateway:centos-4.0-latest
   profiles:
    - full
    - all
@@ -239,9 +238,9 @@ services:
      - zabbix-java-gateway
      - zabbix-java-gateway-centos
   stop_grace_period: 5s
-  
+
  zabbix-snmptraps:
-  image: zabbix/zabbix-snmptraps:centos-6.0-latest
+  image: zabbix/zabbix-snmptraps:centos-4.0-latest
   profiles:
    - full
    - all
@@ -264,45 +263,16 @@ services:
    zbx_net_backend:
   stop_grace_period: 5s
 
- zabbix-web-service:
-  image: zabbix/zabbix-web-service:centos-6.0-latest
-  profiles:
-   - full
-   - all
-  ports:
-   - "10053:10053"
-  volumes:
-   - ./zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-  security_opt:
-   - seccomp:./env_vars/chrome_dp.json
-  deploy:
-   resources:
-    limits:
-      cpus: '0.5'
-      memory: 512M
-    reservations:
-      cpus: '0.25'
-      memory: 256M
-  env_file:
-   - ./env_vars/.env_web_service
-  networks:
-   zbx_net_backend:
-    aliases:
-     - zabbix-web-service
-     - zabbix-web-service-centos
-  stop_grace_period: 5s
-
  mysql-server:
-  image: mysql:8.0-oracle
+  image: mysql:8.0
   command:
    - mysqld
-   - --port=3306   
-   - --character-set-server=utf8mb4
-   - --collation-server=utf8mb4_bin
-   - --skip-character-set-client-handshake
+   - --port=3306
+   - --character-set-server=utf8
+   - --collation-server=utf8_bin
    - --default-authentication-plugin=mysql_native_password
    - --max_connections=1000
-   - --mysqlx_max_connections=1000     
+   - --mysqlx_max_connections=1000      
   volumes:
    - ./mysql:/var/lib/mysql:rw
   env_file:
