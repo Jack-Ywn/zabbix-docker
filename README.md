@@ -5,10 +5,15 @@
 ```shell
 #传参文件夹下面的文件为隐藏文件每个服务的配置选项和参数
 
-#env_vars/.env_agent
+#env_vars/.env_agent（5.0版本前）
 ZBX_HOSTNAME=zabbix-server
 ZBX_SERVER_HOST=0.0.0.0/0
-ZBX_SERVER_HOST=172.16.239.0/24 #仅允许zbx_net_backend的网络段进行通信（更加安全）
+ZBX_SERVER_HOST=172.16.238.0/24 #仅允许zabbix-server容器的网络段进行通信（更加安全）
+
+#env_vars/.env_agent（6.0版本后）
+ZBX_HOSTNAME=zabbix-server
+ZBX_PASSIVE_ALLOW=true
+ZBX_PASSIVESERVERS=172.16.238.0/24
 
 #env_vars/.env_web
 PHP_TZ=Asia/Shanghai
