@@ -1,174 +1,129 @@
-## 先决条件
+## 基于Zabbix官方进行的优化
 
-- 基础`YUM`源和优化系统
+- 传参文件优化记录
 
 ```shell
-#此脚本能优化CentOS7、8的系统（非必要操作）
-bash <(curl -sSL https://linuxmirrors.cn/main.sh)
+#传参文件夹下面的文件为隐藏文件每个服务的配置选项和参数
 
-#docker软件源
-wget -O /etc/yum.repos.d/docker-ce.repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+#env_vars/.env_agent
+ZBX_HOSTNAME=zabbix-server
+ZBX_SERVER_HOST=0.0.0.0/0
+ZBX_SERVER_HOST=172.16.239.0/24 #仅允许zbx_net_backend的网络段进行通信（更加安全）
+
+#env_vars/.env_web
+PHP_TZ=Asia/Shanghai
+
+#env_vars/.env_srv
+ZBX_CACHESIZE=1024M
 ```
 
-- 安装`docker`并运行
+- docker-compose启动文件优化记录
 
 ```shell
-#安装docker
-yum clean all && yum makecache
-yum -y install docker-ce
+#Agent调整为HOST网络模式（容器运行的方式不方便固定Agent的具体IP地址）
+ zabbix-agent:
+  privileged: true
+  pid: "host"
+  network_mode: "host"
+  stop_grace_period: 5s
 
-#修改docker配置文件（可选优化操作）
-mkdir /etc/docker
+#MySQL调整连接数量
+ mysql-server:
+  image: mysql:8.0
+  command:
+   - mysqld
+   - --port=3306
+   - --character-set-server=utf8
+   - --collation-server=utf8_bin
+   - --default-authentication-plugin=mysql_native_password
+   - --max_connections=1000
+   - --mysqlx_max_connections=1000 
 
-cat << EOF | tee /etc/docker/daemon.json
-{
-  "graph": "/data/docker",
-  "registry-mirrors": ["http://hub-mirror.c.163.com", "https://docker.mirrors.ustc.edu.cn"],
-  "live-restore": true
-}
-EOF
+#删除db_data_mysql
 
-#启动docker服务
-systemctl daemon-reload && systemctl enable --now docker
-```
+#仅保留zabbix-web-nginx-mysql删除zabbix-web-apache-mysql
 
-- 安装`docker-compose`命令
-
-```shell
-#下载二进制文件
-wget -P /usr/local/bin https://drive.swireb.cn/d/Linux/Docker/docker-compose  &>/dev/null
-
-#赋予执行权限
-chmod +x /usr/local/bin/docker-compose
-
-#确认版本
-docker-compose -v
+#提供2种容器底层系统镜像的部署
+alpine占用空间小
+centos占用空间大
 ```
 
 
 
-## `docker-compose`部署Zabbix
+## 如何启动项目
 
-- [官方启动yaml文件（参考）](https://github.com/zabbix/zabbix-docker)
-- [本人启动yaml文件（推荐）](https://github.com/Jack-Ywn/zabbix-docker)        
-
-- [下载并且导入容器镜像](https://drive.swireb.cn/Linux/Docker/Zabbix/images)
+- [官方启动yaml文件](https://github.com/zabbix/zabbix-docker)
+- [国内离线容器镜像](https://drive.swireb.cn/Linux/Docker/Zabbix/images)
+- 系统要安装docker和docker-compose
 
 ```shell
-#网络状况比较好的情况可以不用导入
+#rhel7-9的系统可以使用下面的脚本对系统进行初始化安装（前提是全新的系统并且是最小化安装）
+bash <(curl -sSL https://drive.swireb.cn/d/Shell/system.sh)
 
-#导入alpine系统的容器镜像（默认的）
-wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/images/zabbix-image-6.0.tar.gz
-tar xf zabbix-image-6.0.tar.gz
-cd zabbix-image-6.0
-./docker_load.sh
-docker image ls -a
-
-#导入centos系统的容器镜像（需要修改docker-compose.yaml的启动镜像）
-wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/images/zabbix-image-6.0-centos.tar.gz
-tar xf zabbix-image-6.0-centos.tar.gz
-cd zabbix-image-6.0-centos
-./docker_load.sh
-docker image ls -a
+#会优化系统YUM源、优化系统文件句柄、时区、开启时间同步
+#安装常用软件
+#安装docker和docker-compose
+#支持CentOS7.9、CentOS stream 8、CentOS stream 9、Rocky Linux 8、Rocky Linux 9
 ```
 
-- 下载并且解压部署文件
+- 运行Zabbix容器
 
 ```shell
-wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/zabbix-docker.tar.gz
-tar xf zabbix-docker.tar.gz
+#下载启动yaml文件
+git clone https://github.com/Jack-Ywn/zabbix-docker.git
+
+#进入到项目目录
 cd zabbix-docker
-```
 
-- 部署基础功能版本
-
-```shell
-#切换部署版本
+#切换部署版本（通过切换分支实现部署不同的版本）
 git checkout 6.0 
 
-#运行Zabbix容器（必须要和启动yaml文件在同级目录）
-docker-compose up -d
+#启动容器
+sh start.sh 
+请选择容器底层系统：
+1. Alpine
+2. CentOS
+输入选项（1或2）: 1
+是否安装全功能版本？（y/n）: n
 
-#关闭Zabbix容器（必须要和启动yaml文件在同级目录）
-docker-compose down
-
-#修改使用centos系统的容器镜像（默认使用alpine系统的容器镜像）
-sed -i 's#alpine-6.0#centos-6.0#g' docker-compose.yaml
+#关闭容器
+sh stop.sh 
+请选择需要停止的容器底层系统：
+1. Alpine
+2. CentOS
+输入选项（1或2）: 1
+是否为全功能版本？（y/n）: n
 ```
 
-- 部署完整功能版本
+- 无特殊要求无需选择全功能版本
 
 ```shell
-#切换部署版本
-git checkout 6.0 
+#选择全功能版本需要拉取的镜像偏多
 
-#运行Zabbix容器（必须要和启动yaml文件在同级目录）
-docker-compose --profile=all up -d
-
-#关闭Zabbix容器（必须要和启动yaml文件在同级目录）
-docker-compose --profile=all down
-
-#修改使用centos系统的容器镜像（默认使用alpine系统的容器镜像）
-sed -i 's#alpine-6.0#centos-6.0#g' docker-compose.yaml
+#需要代理相关的功能组件则选择全功能版本
 ```
 
 
 
 ## 解决报错`Zabbix agent is not available (for 3m)`
 
-- 容器部署Agent
+- Web界面修改zabbix-server主机的IP地址
 
 ```shell
-#查看Agent的IP地址
-docker inspect zabbix-agent | grep IPAddress 
-
-#Web控制修改Zabbix server主机IP地址
-修改为zabbix-agent容器的IP地址
-```
-
-- [二进制部署Agent](https://www.zabbix.com/documentation/current/zh/manual/appendix/config/zabbix_agentd)
-
-```shell
-#通过脚本安装Agent2（支持CentOS7、Centos8）
-wget --no-check-certificate https://drive.swireb.cn/d/Shell/install-agent2.sh
-
-sh install-agent2.sh
+#由于Agent已经调整为HOST模式
+将127.0.0.1修改为宿主机的实际IP地址即可
 ```
 
 - 其他主机运行Agent容器
 
 ```shell
-#ZBX_SERVER_HOST指定Zabbix server宿主机IP地址   
-docker run --name zabbix-agent -it \
+#根据实际情况指定具体版本  
+docker run --name zabbix-agent \
       -p 10050:10050 \
-      -e ZBX_HOSTNAME="zabbix-server" \
-      -e ZBX_SERVER_HOST="宿主机IP地址" \
+      -e ZBX_HOSTNAME="被监控主机的名称" \
+      -e ZBX_SERVER_HOST="IP地址" \
       -e ZBX_SERVER_PORT=10051 \
       -d zabbix/zabbix-agent:alpine-6.0-latest  
-```
-
-
-
-## 解决`Docker Compose`部署时候`Zabbix Server`无法启动（已经优化）
-
-```shell
-#打开zabbix后看见下方提示
-#zabbix server is not running: the information displayed may not be current
-docker logs -f zabbix-server
-
-#出现zabbix server is not running的两种原因
-mysql连接数量受限制
-zabbix server的缓存大小受限制
-
-#zabbix server的缓存大小调整
-ZBX_CACHESIZE=2048M
-
-#mysql连接数量调整
-max_connections=2000
-mysqlx_max_connections=2000
-
-#重新启动服务
-docker-compose --profile=all restart
 ```
 
 
@@ -183,7 +138,6 @@ C:\Windows\Fonts
 vim docker-compose.yaml
  zabbix-web-nginx-mysql:
   image: zabbix/zabbix-web-nginx-mysql:centos-6.0-latest
-  container_name: zabbix-web-nginx
   restart: always
   ports:
    - "80:8080"
@@ -195,15 +149,13 @@ vim docker-compose.yaml
    - ./zbx_env/usr/share/zabbix/modules/:/usr/share/zabbix/modules/:ro
    - ./zbx_env/usr/share/zabbix/assets/fonts/:/usr/share/zabbix/assets/fonts/:ro #字体目录
 
-#关闭Zabbix容器
-docker-compose --profile=all down
-
-#运行Zabbix容器
-docker-compose --profile=all up -d
-
 #将字体拷贝到容器内部
 wget --no-check-certificate https://drive.swireb.cn/d/Linux/Docker/Zabbix/msyh.ttc
 mv msyh.ttc ./zbx_env/usr/share/zabbix/assets/fonts/DejaVuSans.ttf
+
+#重新启动服务
+docker-compose --profile=all down
+docker-compose --profile=all up -d
 ```
 
 
