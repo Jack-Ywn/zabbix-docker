@@ -1,7 +1,7 @@
 version: '3.5'
 services:
  zabbix-server:
-  image: zabbix/zabbix-server-mysql:alpine-4.0-latest
+  image: zabbix/zabbix-server-mysql:alpine-5.0-latest
   ports:
    - "10051:10051"
   volumes:
@@ -55,7 +55,7 @@ services:
    - net.ipv4.conf.all.send_redirects=0
 
  zabbix-proxy-sqlite3:
-  image: zabbix/zabbix-proxy-sqlite3:alpine-4.0-latest
+  image: zabbix/zabbix-proxy-sqlite3:alpine-5.0-latest
   profiles:
    - all
   ports:
@@ -98,7 +98,7 @@ services:
   stop_grace_period: 30s
 
  zabbix-proxy-mysql:
-  image: zabbix/zabbix-proxy-mysql:alpine-4.0-latest
+  image: zabbix/zabbix-proxy-mysql:alpine-5.0-latest
   profiles:
    - all
   ports:
@@ -148,7 +148,7 @@ services:
   stop_grace_period: 30s
 
  zabbix-web-nginx-mysql:
-  image: zabbix/zabbix-web-nginx-mysql:alpine-4.0-latest
+  image: zabbix/zabbix-web-nginx-mysql:alpine-5.0-latest
   ports:
    - "80:8080"
 #   - "443:8443"
@@ -156,6 +156,7 @@ services:
    - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
    - ./zbx_env/etc/ssl/nginx:/etc/ssl/nginx:ro
+   - ./zbx_env/usr/share/zabbix/modules/:/usr/share/zabbix/modules/:ro
   deploy:
    resources:
     limits:
@@ -174,7 +175,7 @@ services:
    - mysql-server
    - zabbix-server
   healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+   test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
    interval: 10s
    timeout: 5s
    retries: 3
@@ -191,7 +192,7 @@ services:
    - net.core.somaxconn=65535
 
  zabbix-agent:
-  image: zabbix/zabbix-agent:alpine-4.0-latest
+  image: zabbix/zabbix-agent:alpine-5.0-latest
   volumes:
    - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
@@ -216,7 +217,7 @@ services:
   stop_grace_period: 5s
 
  zabbix-java-gateway:
-  image: zabbix/zabbix-java-gateway:alpine-4.0-latest
+  image: zabbix/zabbix-java-gateway:alpine-5.0-latest
   profiles:
    - full
    - all
@@ -240,7 +241,7 @@ services:
   stop_grace_period: 5s
 
  zabbix-snmptraps:
-  image: zabbix/zabbix-snmptraps:alpine-4.0-latest
+  image: zabbix/zabbix-snmptraps:alpine-5.0-latest
   profiles:
    - full
    - all
@@ -264,7 +265,7 @@ services:
   stop_grace_period: 5s
 
  mysql-server:
-  image: mysql:8.0
+  image: mysql:8.0-oracle  
   command:
    - mysqld
    - --port=3306
@@ -272,7 +273,7 @@ services:
    - --collation-server=utf8_bin
    - --default-authentication-plugin=mysql_native_password
    - --max_connections=1000
-   - --mysqlx_max_connections=1000      
+   - --mysqlx_max_connections=1000
   volumes:
    - ./mysql:/var/lib/mysql:rw
   env_file:
