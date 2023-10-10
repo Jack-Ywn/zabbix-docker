@@ -185,7 +185,7 @@ https://cloud.tencent.com/developer/article/1956234
 
 ```shell
 #进入数据库的容器
-docker exec -it zabbix-docker-zabbix-server-1 bash
+docker exec -it  zabbix-docker-mysql-server-1 bash
 
 #使用root用户连接数据库（默认密码root_pwd）
 mysql -u root -proot_pwd
