@@ -1,7 +1,7 @@
 version: '3.5'
 services:
  zabbix-server:
-  image: zabbix/zabbix-server-mysql:alpine-6.0-latest
+  image: zabbix/zabbix-server-mysql:alpine-6.4-latest
   ports:
    - "10051:10051"
   volumes:
@@ -53,9 +53,9 @@ services:
    - net.ipv4.conf.all.accept_redirects=0
    - net.ipv4.conf.all.secure_redirects=0
    - net.ipv4.conf.all.send_redirects=0
-   
+
  zabbix-proxy-sqlite3:
-  image: zabbix/zabbix-proxy-sqlite3:alpine-6.0-latest
+  image: zabbix/zabbix-proxy-sqlite3:alpine-6.4-latest
   profiles:
    - all
   ports:
@@ -98,7 +98,7 @@ services:
   stop_grace_period: 30s
 
  zabbix-proxy-mysql:
-  image: zabbix/zabbix-proxy-mysql:alpine-6.0-latest
+  image: zabbix/zabbix-proxy-mysql:alpine-6.4-latest
   profiles:
    - all
   ports:
@@ -148,7 +148,7 @@ services:
   stop_grace_period: 30s
 
  zabbix-web-nginx-mysql:
-  image: zabbix/zabbix-web-nginx-mysql:alpine-6.0-latest
+  image: zabbix/zabbix-web-nginx-mysql:alpine-6.4-latest
   ports:
    - "80:8080"
 #   - "443:8443"
@@ -192,7 +192,7 @@ services:
    - net.core.somaxconn=65535
 
  zabbix-agent:
-  image: zabbix/zabbix-agent:alpine-6.0-latest
+  image: zabbix/zabbix-agent:alpine-6.4-latest
   volumes:
    - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
@@ -217,7 +217,7 @@ services:
   stop_grace_period: 5s
 
  zabbix-java-gateway:
-  image: zabbix/zabbix-java-gateway:alpine-6.0-latest
+  image: zabbix/zabbix-java-gateway:alpine-6.4-latest
   profiles:
    - full
    - all
@@ -239,9 +239,9 @@ services:
      - zabbix-java-gateway
      - zabbix-java-gateway-alpine
   stop_grace_period: 5s
-  
+
  zabbix-snmptraps:
-  image: zabbix/zabbix-snmptraps:alpine-6.0-latest
+  image: zabbix/zabbix-snmptraps:alpine-6.4-latest
   profiles:
    - full
    - all
@@ -265,7 +265,7 @@ services:
   stop_grace_period: 5s
 
  zabbix-web-service:
-  image: zabbix/zabbix-web-service:alpine-6.0-latest
+  image: zabbix/zabbix-web-service:alpine-6.4-latest
   profiles:
    - full
    - all
@@ -296,13 +296,13 @@ services:
   image: mysql:8.0-oracle
   command:
    - mysqld
-   - --port=3306   
+   - --port=3306  
    - --character-set-server=utf8mb4
    - --collation-server=utf8mb4_bin
    - --skip-character-set-client-handshake
    - --default-authentication-plugin=mysql_native_password
    - --max_connections=1000
-   - --mysqlx_max_connections=1000     
+   - --mysqlx_max_connections=1000   
   volumes:
    - ./mysql:/var/lib/mysql:rw
   env_file:
