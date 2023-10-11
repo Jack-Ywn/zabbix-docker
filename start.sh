@@ -27,6 +27,6 @@ else
 fi
 
 echo "耐心等待初始化此期间web页面会报错数据库连接错误"
-echo "访问地址：https://localhost"
+echo "访问地址：http://localhost"
 echo "用户密码：Admin zabbix"
 
