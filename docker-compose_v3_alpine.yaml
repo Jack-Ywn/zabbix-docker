@@ -1,352 +1,169 @@
-version: '3.5'
 services:
  zabbix-server:
-  image: zabbix/zabbix-server-mysql:alpine-6.0-latest
-  ports:
-   - "10051:10051"
+  extends:
+   file: compose_zabbix_components.yaml
+   service: server-mysql
+  image: "${ZABBIX_SERVER_MYSQL_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
   volumes:
-   - /etc/localtime:/etc/localtime:ro
-   - /etc/timezone:/etc/timezone:ro 
-   - ./zbx_env/usr/lib/zabbix/alertscripts:/usr/lib/zabbix/alertscripts:ro
-   - ./zbx_env/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
-   - ./zbx_env/var/lib/zabbix/dbscripts:/var/lib/zabbix/dbscripts:ro
-   - ./zbx_env/var/lib/zabbix/export:/var/lib/zabbix/export:rw
-   - ./zbx_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
-   - ./zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-   - ./zbx_env/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
-   - ./zbx_env/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
-   - snmptraps:/var/lib/zabbix/snmptraps:rw
-  ulimits:
-   nproc: 65535
-   nofile:
-    soft: 20000
-    hard: 40000
-  deploy:
-   resources:
-    limits:
-      cpus: '0.70'
-      memory: 1G
-    reservations:
-      cpus: '0.5'
-      memory: 512M
-  env_file:
-   - ./env_vars/.env_db_mysql
-   - ./env_vars/.env_srv
-  secrets:
-   - MYSQL_USER
-   - MYSQL_PASSWORD
-   - MYSQL_ROOT_USER
-   - MYSQL_ROOT_PASSWORD
+   - /etc/timezone:/etc/timezone:ro
   depends_on:
    - mysql-server
-  networks:
-   zbx_net_backend:
-     aliases:
-      - zabbix-server
-      - zabbix-server-mysql
-      - zabbix-server-alpine-mysql
-      - zabbix-server-mysql-alpine
-   zbx_net_frontend:
-  stop_grace_period: 30s
-  sysctls:
-   - net.ipv4.ip_local_port_range=1024 64999
-   - net.ipv4.conf.all.accept_redirects=0
-   - net.ipv4.conf.all.secure_redirects=0
-   - net.ipv4.conf.all.send_redirects=0
-   
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
+
  zabbix-proxy-sqlite3:
-  image: zabbix/zabbix-proxy-sqlite3:alpine-6.0-latest
-  profiles:
-   - all
-  ports:
-   - "10061:10051"
+  extends:
+   file: compose_zabbix_components.yaml
+   service: proxy-sqlite3
+  image: "${ZABBIX_PROXY_SQLITE3_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
   volumes:
-   - /etc/localtime:/etc/localtime:ro
-   - /etc/timezone:/etc/timezone:ro 
-   - ./zbx_env/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
-   - ./zbx_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
-   - ./zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-   - ./zbx_env/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
-   - ./zbx_env/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
-   - snmptraps:/var/lib/zabbix/snmptraps:rw
-  ulimits:
-   nproc: 65535
-   nofile:
-    soft: 20000
-    hard: 40000
-  deploy:
-   resources:
-    limits:
-      cpus: '0.70'
-      memory: 512M
-    reservations:
-      cpus: '0.3'
-      memory: 256M
-  env_file:
-   - ./env_vars/.env_prx
-   - ./env_vars/.env_prx_sqlite3
-  depends_on:
-   - zabbix-java-gateway
-   - zabbix-snmptraps
-  networks:
-   zbx_net_backend:
-    aliases:
-     - zabbix-proxy-sqlite3
-     - zabbix-proxy-alpine-sqlite3
-     - zabbix-proxy-sqlite3-alpine
-   zbx_net_frontend:
-  stop_grace_period: 30s
+   - /etc/timezone:/etc/timezone:ro
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
 
  zabbix-proxy-mysql:
-  image: zabbix/zabbix-proxy-mysql:alpine-6.0-latest
-  profiles:
-   - all
-  ports:
-   - "10071:10051"
+  extends:
+   file: compose_zabbix_components.yaml
+   service: proxy-mysql
+  image: "${ZABBIX_PROXY_MYSQL_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
   volumes:
-   - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
-   - ./zbx_env/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
-   - ./zbx_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
-   - ./zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-   - ./zbx_env/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
-   - ./zbx_env/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
-   - snmptraps:/var/lib/zabbix/snmptraps:rw
-  ulimits:
-   nproc: 65535
-   nofile:
-    soft: 20000
-    hard: 40000
-  deploy:
-   resources:
-    limits:
-      cpus: '0.70'
-      memory: 512M
-    reservations:
-      cpus: '0.3'
-      memory: 256M
-  env_file:
-   - ./env_vars/.env_db_mysql_proxy
-   - ./env_vars/.env_prx
-   - ./env_vars/.env_prx_mysql
   depends_on:
    - mysql-server
-   - zabbix-java-gateway
-   - zabbix-snmptraps
-  secrets:
-   - MYSQL_USER
-   - MYSQL_PASSWORD
-   - MYSQL_ROOT_USER
-   - MYSQL_ROOT_PASSWORD
-  networks:
-   zbx_net_backend:
-    aliases:
-     - zabbix-proxy-mysql
-     - zabbix-proxy-alpine-mysql
-     - zabbix-proxy-mysql-alpine
-   zbx_net_frontend:
-  stop_grace_period: 30s
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
 
  zabbix-web-nginx-mysql:
-  image: zabbix/zabbix-web-nginx-mysql:alpine-6.0-latest
-  ports:
-   - "80:8080"
-#   - "443:8443"
+  extends:
+   file: compose_zabbix_components.yaml
+   service: web-nginx-mysql
+  image: "${ZABBIX_WEB_NGINX_MYSQL_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
   volumes:
-   - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
-   - ./zbx_env/etc/ssl/nginx:/etc/ssl/nginx:ro
-   - ./zbx_env/usr/share/zabbix/modules/:/usr/share/zabbix/modules/:ro
-  deploy:
-   resources:
-    limits:
-      cpus: '0.70'
-      memory: 512M
-    reservations:
-      cpus: '0.5'
-      memory: 256M
-  env_file:
-   - ./env_vars/.env_db_mysql
-   - ./env_vars/.env_web
-  secrets:
-   - MYSQL_USER
-   - MYSQL_PASSWORD
   depends_on:
    - mysql-server
-   - zabbix-server
-  healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
-   interval: 10s
-   timeout: 5s
-   retries: 3
-   start_period: 30s
-  networks:
-   zbx_net_backend:
-    aliases:
-     - zabbix-web-nginx-mysql
-     - zabbix-web-nginx-alpine-mysql
-     - zabbix-web-nginx-mysql-alpine
-   zbx_net_frontend:
-  stop_grace_period: 10s
-  sysctls:
-   - net.core.somaxconn=65535
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
 
  zabbix-agent:
-  image: zabbix/zabbix-agent:alpine-6.0-latest
+  extends:
+   file: compose_zabbix_components.yaml
+   service: agent
+  image: "${ZABBIX_AGENT_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
   volumes:
-   - /etc/localtime:/etc/localtime:ro
    - /etc/timezone:/etc/timezone:ro
-   - ./zbx_env/etc/zabbix/zabbix_agentd.d:/etc/zabbix/zabbix_agentd.d:ro
-   - ./zbx_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
-   - ./zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-   - ./zbx_env/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
-  deploy:
-   resources:
-    limits:
-      cpus: '0.2'
-      memory: 128M
-    reservations:
-      cpus: '0.1'
-      memory: 64M
-   mode: global
-  env_file:
-   - ./env_vars/.env_agent
-  privileged: true
-  pid: "host"
-  network_mode: "host"
-  stop_grace_period: 5s
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
 
  zabbix-java-gateway:
-  image: zabbix/zabbix-java-gateway:alpine-6.0-latest
-  profiles:
-   - full
-   - all
-  ports:
-   - "10052:10052"
-  deploy:
-   resources:
-    limits:
-      cpus: '0.5'
-      memory: 512M
-    reservations:
-      cpus: '0.25'
-      memory: 256M
-  env_file:
-   - ./env_vars/.env_java
-  networks:
-   zbx_net_backend:
-    aliases:
-     - zabbix-java-gateway
-     - zabbix-java-gateway-alpine
-  stop_grace_period: 5s
-  
+  extends:
+   file: compose_zabbix_components.yaml
+   service: java-gateway
+  image: "${ZABBIX_JAVA_GATEWAY_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
+
  zabbix-snmptraps:
-  image: zabbix/zabbix-snmptraps:alpine-6.0-latest
-  profiles:
-   - full
-   - all
-  ports:
-   - "162:1162/udp"
-  volumes:
-   - snmptraps:/var/lib/zabbix/snmptraps:rw
-  deploy:
-   resources:
-    limits:
-      cpus: '0.5'
-      memory: 256M
-    reservations:
-      cpus: '0.25'
-      memory: 128M
-  networks:
-   zbx_net_frontend:
-    aliases:
-     - zabbix-snmptraps
-   zbx_net_backend:
-  stop_grace_period: 5s
+  extends:
+   file: compose_zabbix_components.yaml
+   service: snmptraps
+  image: "${ZABBIX_SNMPTRAPS_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
 
  zabbix-web-service:
-  image: zabbix/zabbix-web-service:alpine-6.0-latest
-  profiles:
-   - full
-   - all
-  ports:
-   - "10053:10053"
-  volumes:
-   - ./zbx_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-  security_opt:
-   - seccomp:./env_vars/chrome_dp.json
-  deploy:
-   resources:
-    limits:
-      cpus: '0.5'
-      memory: 512M
-    reservations:
-      cpus: '0.25'
-      memory: 256M
-  env_file:
-   - ./env_vars/.env_web_service
-  networks:
-   zbx_net_backend:
-    aliases:
-     - zabbix-web-service
-     - zabbix-web-service-alpine
-  stop_grace_period: 5s
+  extends:
+   file: compose_zabbix_components.yaml
+   service: web-service
+  image: "${ZABBIX_WEB_SERVICE_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
 
  mysql-server:
-  image: mysql:8.0-oracle
-  command:
-   - mysqld
-   - --port=3306   
-   - --character-set-server=utf8mb4
-   - --collation-server=utf8mb4_bin
-   - --skip-character-set-client-handshake
-   - --default-authentication-plugin=mysql_native_password
-   - --max_connections=1000
-   - --mysqlx_max_connections=1000     
-  volumes:
-   - ./mysql:/var/lib/mysql:rw
-  env_file:
-   - ./env_vars/.env_db_mysql
-  secrets:
-   - MYSQL_USER
-   - MYSQL_PASSWORD
-   - MYSQL_ROOT_PASSWORD
-  stop_grace_period: 1m
-  networks:
-   zbx_net_backend:
-    aliases:
-     - mysql-server
-     - zabbix-database
-     - mysql-database
+  extends:
+   file: compose_databases.yaml
+   service: mysql-server
+
+ db-data-mysql:
+  extends:
+   file: compose_databases.yaml
+   service: db-data-mysql
+
+ elasticsearch:
+  extends:
+   file: compose_databases.yaml
+   service: elasticsearch
+
+ selenium:
+  extends:
+   file: compose_additional_components.yaml
+   service: selenium
+
+ selenium-chrome:
+  platform: linux/amd64
+  extends:
+   file: compose_additional_components.yaml
+   service: selenium-chrome
+
+ selenium-firefox:
+  extends:
+   file: compose_additional_components.yaml
+   service: selenium-firefox
 
 networks:
-  zbx_net_frontend:
+  frontend:
     driver: bridge
     driver_opts:
-      com.docker.network.enable_ipv6: "false"
+      com.docker.network.enable_ipv6: "${FRONTEND_ENABLE_IPV6}"
     ipam:
-      driver: default
+      driver: "${FRONTEND_NETWORK_DRIVER}"
       config:
-      - subnet: 172.16.238.0/24
-  zbx_net_backend:
+      - subnet: "${FRONTEND_SUBNET}"
+  backend:
     driver: bridge
     driver_opts:
-      com.docker.network.enable_ipv6: "false"
+      com.docker.network.enable_ipv6: "${BACKEND_ENABLE_IPV6}"
     internal: true
     ipam:
-      driver: default
+      driver: "${BACKEND_NETWORK_DRIVER}"
       config:
-      - subnet: 172.16.239.0/24
+      - subnet: "${BACKEND_SUBNET}"
+  database:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "${DATABASE_NETWORK_ENABLE_IPV6}"
+    internal: true
+    ipam:
+      driver: "${DATABASE_NETWORK_DRIVER}"
+  tools_frontend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "${ADD_TOOLS_ENABLE_IPV6}"
+    ipam:
+      driver: "${ADD_TOOLS_NETWORK_DRIVER}"
+      config:
+      - subnet: "${ADD_TOOLS_SUBNET}"
 
 volumes:
   snmptraps:
+#  dbsocket:
 
 secrets:
   MYSQL_USER:
-    file: ./env_vars/.MYSQL_USER
+    file: ${ENV_VARS_DIRECTORY}/.MYSQL_USER
   MYSQL_PASSWORD:
-    file: ./env_vars/.MYSQL_PASSWORD
+    file: ${ENV_VARS_DIRECTORY}/.MYSQL_PASSWORD
   MYSQL_ROOT_USER:
-    file: ./env_vars/.MYSQL_ROOT_USER
+    file: ${ENV_VARS_DIRECTORY}/.MYSQL_ROOT_USER
   MYSQL_ROOT_PASSWORD:
-    file: ./env_vars/.MYSQL_ROOT_PASSWORD
+    file: ${ENV_VARS_DIRECTORY}/.MYSQL_ROOT_PASSWORD
+#  client-key.pem:
+#    file: ${ENV_VARS_DIRECTORY}/.ZBX_DB_KEY_FILE
+#  client-cert.pem:
+#    file: ${ENV_VARS_DIRECTORY}/.ZBX_DB_CERT_FILE
+#  root-ca.pem:
+#    file: ${ENV_VARS_DIRECTORY}/.ZBX_DB_CA_FILE
+#  server-cert.pem:
+#    file: ${ENV_VARS_DIRECTORY}/.DB_CERT_FILE
+#  server-key.pem:
+#    file: ${ENV_VARS_DIRECTORY}/.DB_KEY_FILE

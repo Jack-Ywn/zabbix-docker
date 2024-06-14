@@ -1,0 +1,423 @@
+services:
+ server:
+  init: true
+  ports:
+   - "${ZABBIX_SERVER_PORT}:10051"
+  restart: "${RESTART_POLICY}"
+  attach: true
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - ${DATA_DIRECTORY}/usr/lib/zabbix/alertscripts:/usr/lib/zabbix/alertscripts:ro
+   - ${DATA_DIRECTORY}/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/dbscripts:/var/lib/zabbix/dbscripts:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/export:/var/lib/zabbix/export:rw
+   - ${DATA_DIRECTORY}/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
+   - snmptraps:/var/lib/zabbix/snmptraps:ro
+  tmpfs: /tmp
+  ulimits:
+   nproc: 65535
+   nofile:
+    soft: 20000
+    hard: 40000
+  deploy:
+   resources:
+    limits:
+      cpus: '0.70'
+      memory: 1G
+    reservations:
+      cpus: '0.5'
+      memory: 512M
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_srv
+   - path: ${ENV_VARS_DIRECTORY}/.env_srv_override
+     required: false
+  networks:
+   database:
+     aliases:
+      - zabbix-server
+   backend:
+     aliases:
+      - zabbix-server
+   frontend:
+   tools_frontend:
+#  devices:
+#   - "/dev/ttyUSB0:/dev/ttyUSB0"
+  stop_grace_period: 30s
+#  cap_add:
+#    - "NET_RAW"
+  sysctls:
+   - net.ipv4.ip_local_port_range=1024 64999
+   - net.ipv4.conf.all.accept_redirects=0
+   - net.ipv4.conf.all.secure_redirects=0
+   - net.ipv4.conf.all.send_redirects=0
+#   - net.ipv4.ping_group_range=0 1995
+  labels:
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-server"
+
+ server-mysql:
+  extends:
+   service: server
+#  volumes:
+#   - dbsocket:/var/run/mysqld/
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_db_mysql
+  secrets:
+   - MYSQL_USER
+   - MYSQL_PASSWORD
+#   - client-key.pem
+#   - client-cert.pem
+#   - root-ca.pem
+  networks:
+   backend:
+     aliases:
+      - zabbix-server-mysql
+  labels:
+   com.zabbix.description: "Zabbix server with MySQL database support"
+   com.zabbix.dbtype: "mysql"
+
+ proxy:
+  init: true
+  profiles:
+   - all
+  restart: "${RESTART_POLICY}"
+  attach: false
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - ${DATA_DIRECTORY}/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
+   - snmptraps:/var/lib/zabbix/snmptraps:ro
+  tmpfs: /tmp
+  ulimits:
+   nproc: 65535
+   nofile:
+    soft: 20000
+    hard: 40000
+  deploy:
+   resources:
+    limits:
+      cpus: '0.70'
+      memory: 512M
+    reservations:
+      cpus: '0.3'
+      memory: 256M
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_prx
+  networks:
+   backend:
+   frontend:
+   tools_frontend:
+  stop_grace_period: 30s
+#  cap_add:
+#    - "NET_RAW"
+  sysctls:
+   - net.ipv4.ip_local_port_range=1024 64999
+   - net.ipv4.conf.all.accept_redirects=0
+   - net.ipv4.conf.all.secure_redirects=0
+   - net.ipv4.conf.all.send_redirects=0
+#   - net.ipv4.ping_group_range=0 1995
+  labels:
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-proxy"
+
+ proxy-sqlite3:
+  extends:
+   service: proxy
+  ports:
+   - "${ZABBIX_PROXY_SQLITE3_PORT}:10051"
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_prx_sqlite3
+   - path: ${ENV_VARS_DIRECTORY}/.env_prx_sqlite3_override
+     required: false
+  networks:
+   backend:
+    aliases:
+     - zabbix-proxy-sqlite3
+  labels:
+   com.zabbix.description: "Zabbix proxy with SQLite3 database support"
+   com.zabbix.dbtype: "sqlite3"
+
+ proxy-mysql:
+  extends:
+   service: proxy
+  ports:
+   - "${ZABBIX_PROXY_MYSQL_PORT}:10051"
+#  volumes:
+#   - dbsocket:/var/run/mysqld/
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_db_mysql_proxy
+   - ${ENV_VARS_DIRECTORY}/.env_prx_mysql
+   - path: ${ENV_VARS_DIRECTORY}/.env_prx_mysql_override
+     required: false
+  secrets:
+   - MYSQL_USER
+   - MYSQL_PASSWORD
+#   - client-key.pem
+#   - client-cert.pem
+#   - root-ca.pem
+  networks:
+   database:
+     aliases:
+      - zabbix-proxy-mysql
+   backend:
+    aliases:
+     - zabbix-proxy-mysql
+  labels:
+   com.zabbix.description: "Zabbix proxy with MySQL database support"
+   com.zabbix.dbtype: "mysql"
+
+ web-nginx:
+  ports:
+   - "${ZABBIX_WEB_NGINX_HTTP_PORT}:8080"
+   - "${ZABBIX_WEB_NGINX_HTTPS_PORT}:8443"
+  restart: "${RESTART_POLICY}"
+  attach: false
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - ${DATA_DIRECTORY}/etc/ssl/nginx:/etc/ssl/nginx:ro
+   - ${DATA_DIRECTORY}/usr/share/zabbix/modules/:/usr/share/zabbix/modules/:ro
+  tmpfs: /tmp
+  deploy:
+   resources:
+    limits:
+      cpus: '0.70'
+      memory: 512M
+    reservations:
+      cpus: '0.5'
+      memory: 256M
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_web
+   - path: ${ENV_VARS_DIRECTORY}/.env_web_override
+     required: false
+  healthcheck:
+   test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+   interval: 10s
+   timeout: 5s
+   retries: 3
+   start_period: 30s
+  networks:
+   database:
+   backend:
+   frontend:
+  stop_grace_period: 10s
+  sysctls:
+   - net.core.somaxconn=65535
+  labels:
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-frontend"
+   com.zabbix.webserver: "nginx"
+
+ web-nginx-mysql:
+  extends:
+   service: web-nginx
+#  volumes:
+#   - dbsocket:/var/run/mysqld/
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_db_mysql
+  secrets:
+   - MYSQL_USER
+   - MYSQL_PASSWORD
+#   - client-key.pem
+#   - client-cert.pem
+#   - root-ca.pem
+  networks:
+   backend:
+    aliases:
+     - zabbix-web-nginx-mysql
+  labels:
+   com.zabbix.description: "Zabbix frontend on Nginx web-server with MySQL database support"
+   com.zabbix.dbtype: "mysql"
+
+ agent:
+  init: true
+  profiles:
+   - full
+   - all
+  ports:
+   - "${ZABBIX_AGENT_PORT}:10050"
+  restart: "${RESTART_POLICY}"
+  attach: false
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - ${DATA_DIRECTORY}/etc/zabbix/zabbix_agentd.d:/etc/zabbix/zabbix_agentd.d:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+  tmpfs: /tmp
+  deploy:
+   resources:
+    limits:
+      cpus: '0.2'
+      memory: 128M
+    reservations:
+      cpus: '0.1'
+      memory: 64M
+   mode: global
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_agent
+   - path: ${ENV_VARS_DIRECTORY}/.env_agent_override
+     required: false
+  privileged: true
+  pid: "host"
+  networks:
+   backend:
+    aliases:
+     - zabbix-agent
+     - zabbix-agent-passive
+  stop_grace_period: 5s
+  labels:
+   com.zabbix.description: "Zabbix agent"
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-agentd"
+
+ agent2:
+  init: true
+  profiles:
+   - full
+   - all
+  ports:
+   - "${ZABBIX_AGENT2_PORT}:10050"
+  restart: "${RESTART_POLICY}"
+  attach: false
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - ${DATA_DIRECTORY}/etc/zabbix/zabbix_agentd.d:/etc/zabbix/zabbix_agentd.d:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+   - ${DATA_DIRECTORY}/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+  tmpfs: /tmp
+  deploy:
+   resources:
+    limits:
+      cpus: '0.2'
+      memory: 128M
+    reservations:
+      cpus: '0.1'
+      memory: 64M
+   mode: global
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_agent
+   - path: ${ENV_VARS_DIRECTORY}/.env_agent_override
+     required: false
+  privileged: true
+  pid: "host"
+  networks:
+   backend:
+    aliases:
+     - zabbix-agent
+     - zabbix-agent-passive
+  stop_grace_period: 5s
+  labels:
+   com.zabbix.description: "Zabbix agent 2"
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-agent2"
+
+ java-gateway:
+  profiles:
+   - full
+   - all
+  ports:
+   - "${ZABBIX_JAVA_GATEWAY_PORT}:10052"
+  restart: "${RESTART_POLICY}"
+  attach: false
+  deploy:
+   resources:
+    limits:
+      cpus: '0.5'
+      memory: 512M
+    reservations:
+      cpus: '0.25'
+      memory: 256M
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_java
+   - path: ${ENV_VARS_DIRECTORY}/.env_java_override
+     required: false
+  networks:
+   backend:
+    aliases:
+     - zabbix-java-gateway
+   frontend:
+  stop_grace_period: 5s
+  labels:
+   com.zabbix.description: "Zabbix Java Gateway"
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "java-gateway"
+
+ snmptraps:
+# Override snmptrapd command arguments to receive SNMP traps by DNS
+# It must be done with ZBX_SNMP_TRAP_USE_DNS=true environment variable
+#  command: /usr/sbin/snmptrapd -t -X -C -c /etc/snmp/snmptrapd.conf -Lo -A --doNotFork=yes --agentuser=zabbix --agentgroup=zabbix
+  profiles:
+   - full
+   - all
+  ports:
+   - "${ZABBIX_SNMPTRAPS_PORT}:1162/udp"
+  restart: "${RESTART_POLICY}"
+  attach: false
+  read_only: true
+  volumes:
+   - snmptraps:/var/lib/zabbix/snmptraps:rw
+  tmpfs: /tmp
+  deploy:
+   resources:
+    limits:
+      cpus: '0.5'
+      memory: 256M
+    reservations:
+      cpus: '0.25'
+      memory: 128M
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_snmptraps
+   - path: ${ENV_VARS_DIRECTORY}/.env_snmptraps_override
+     required: false
+  networks:
+   frontend:
+    aliases:
+     - zabbix-snmptraps
+   backend:
+  stop_grace_period: 5s
+  labels:
+   com.zabbix.description: "Zabbix snmptraps"
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "snmptraps"
+
+ web-service:
+  profiles:
+   - full
+   - all
+  ports:
+   - "${ZABBIX_WEB_SERVICE_PORT}:10053"
+  restart: "${RESTART_POLICY}"
+  attach: false
+  volumes:
+   - ${DATA_DIRECTORY}/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
+  tmpfs: /tmp
+  security_opt:
+   - seccomp:${ENV_VARS_DIRECTORY}/chrome_dp.json
+  deploy:
+   resources:
+    limits:
+      cpus: '0.5'
+      memory: 512M
+    reservations:
+      cpus: '0.25'
+      memory: 256M
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_web_service
+   - path: ${ENV_VARS_DIRECTORY}/.env_web_service_override
+     required: false
+  networks:
+   backend:
+    aliases:
+     - zabbix-web-service
+  stop_grace_period: 5s
+  labels:
+   com.zabbix.description: "Zabbix web service"
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "web-service"
