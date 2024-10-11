@@ -205,7 +205,7 @@ spec:
           secretName: zabbix-mysql-client-tls-certs
       containers:
         - name: zabbix-web
-          image: zabbix/zabbix-web-nginx-mysql:alpine-7.0
+          image: zabbix/zabbix-web-nginx-mysql:alpine-7.0-latest
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 8080
@@ -495,7 +495,7 @@ spec:
             value: ""
           - name: ZBX_STARTHTTPPOLLERS
             value: ""
-          - name: ZBX_IPMIPOLLERS
+          - name: ZBX_STARTIPMIPOLLERS
             value: ""
           - name: ZBX_STARTTIMERS
             value: ""
@@ -690,7 +690,7 @@ spec:
             value: ""
           - name: ZBX_STARTPOLLERS
             value: ""
-          - name: ZBX_IPMIPOLLERS
+          - name: ZBX_STARTIPMIPOLLERS
             value: ""
           - name: ZBX_STARTPOLLERSUNREACHABLE
             value: ""
@@ -884,7 +884,7 @@ spec:
             value: ""
           - name: ZBX_STARTPOLLERS
             value: ""
-          - name: ZBX_IPMIPOLLERS
+          - name: ZBX_STARTIPMIPOLLERS
             value: ""
           - name: ZBX_STARTPOLLERSUNREACHABLE
             value: ""

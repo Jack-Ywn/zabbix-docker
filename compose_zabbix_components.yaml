@@ -2,7 +2,11 @@ services:
  server:
   init: true
   ports:
-   - "${ZABBIX_SERVER_PORT}:10051"
+   - name: zabbix-trapper
+     target: 10051
+     published: "${ZABBIX_SERVER_PORT}"
+     protocol: tcp
+     app_protocol: zabbix-trapper
   restart: "${RESTART_POLICY}"
   attach: true
   volumes:
@@ -15,7 +19,7 @@ services:
    - ${DATA_DIRECTORY}/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
    - ${DATA_DIRECTORY}/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
    - ${DATA_DIRECTORY}/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
-   - snmptraps:/var/lib/zabbix/snmptraps:ro
+   - snmptraps:/var/lib/zabbix/snmptraps:roz
   tmpfs: /tmp
   ulimits:
    nproc: 65535
@@ -79,6 +83,26 @@ services:
    com.zabbix.description: "Zabbix server with MySQL database support"
    com.zabbix.dbtype: "mysql"
 
+ server-pgsql:
+  extends:
+   service: server
+#  volumes:
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CA_FILE:/run/secrets/root-ca.pem:ro
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CERT_FILE:/run/secrets/client-cert.pem:ro
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_KEY_FILE:/run/secrets/client-key.pem:ro
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_db_pgsql
+  secrets:
+   - POSTGRES_USER
+   - POSTGRES_PASSWORD
+  networks:
+   backend:
+     aliases:
+      - zabbix-server-pgsql
+  labels:
+   com.zabbix.description: "Zabbix server with PostgreSQL database support"
+   com.zabbix.dbtype: "pgsql"
+
  proxy:
   init: true
   profiles:
@@ -130,7 +154,11 @@ services:
   extends:
    service: proxy
   ports:
-   - "${ZABBIX_PROXY_SQLITE3_PORT}:10051"
+   - name: zabbix-trapper
+     target: 10051
+     published: "${ZABBIX_PROXY_SQLITE3_PORT}"
+     protocol: tcp
+     app_protocol: zabbix-trapper
   env_file:
    - ${ENV_VARS_DIRECTORY}/.env_prx_sqlite3
    - path: ${ENV_VARS_DIRECTORY}/.env_prx_sqlite3_override
@@ -147,7 +175,11 @@ services:
   extends:
    service: proxy
   ports:
-   - "${ZABBIX_PROXY_MYSQL_PORT}:10051"
+   - name: zabbix-trapper
+     target: 10051
+     published: "${ZABBIX_PROXY_MYSQL_PORT}"
+     protocol: tcp
+     app_protocol: zabbix-trapper
 #  volumes:
 #   - dbsocket:/var/run/mysqld/
   env_file:
@@ -172,10 +204,106 @@ services:
    com.zabbix.description: "Zabbix proxy with MySQL database support"
    com.zabbix.dbtype: "mysql"
 
+ web-apache:
+  profiles:
+   - all
+  ports:
+   - name: web-http
+     target: 8080
+     published: "${ZABBIX_WEB_APACHE_HTTP_PORT}"
+     protocol: tcp
+     app_protocol: http
+   - name: web-https
+     target: 8443
+     published: "${ZABBIX_WEB_APACHE_HTTPS_PORT}"
+     protocol: tcp
+     app_protocol: https
+  restart: "${RESTART_POLICY}"
+  attach: false
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
+   - ${DATA_DIRECTORY}/etc/ssl/apache2:/etc/ssl/apache2:ro
+   - ${DATA_DIRECTORY}/usr/share/zabbix/modules/:/usr/share/zabbix/modules/:ro
+  tmpfs: /tmp
+  deploy:
+   resources:
+    limits:
+      cpus: '0.70'
+      memory: 512M
+    reservations:
+      cpus: '0.5'
+      memory: 256M
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_web
+   - path: ${ENV_VARS_DIRECTORY}/.env_web_override
+     required: false
+  healthcheck:
+   test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+   interval: 10s
+   timeout: 5s
+   retries: 3
+   start_period: 30s
+  networks:
+   database:
+   backend:
+   frontend:
+  stop_grace_period: 10s
+  sysctls:
+   - net.core.somaxconn=65535
+  labels:
+   com.zabbix.company: "Zabbix LLC"
+   com.zabbix.component: "zabbix-frontend"
+   com.zabbix.webserver: "apache2"
+
+ web-apache-mysql:
+  extends:
+   service: web-apache
+#  volumes:
+#   - dbsocket:/var/run/mysqld/
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_db_mysql
+  secrets:
+   - MYSQL_USER
+   - MYSQL_PASSWORD
+#   - client-key.pem
+#   - client-cert.pem
+#   - root-ca.pem
+  labels:
+   com.zabbix.description: "Zabbix frontend on Apache web-server with MySQL database support"
+   com.zabbix.dbtype: "mysql"
+
+ web-apache-pgsql:
+  extends:
+   service: web-apache
+#  volumes:
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CA_FILE:/run/secrets/root-ca.pem:ro
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CERT_FILE:/run/secrets/client-cert.pem:ro
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_KEY_FILE:/run/secrets/client-key.pem:ro
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_db_pgsql
+  secrets:
+   - POSTGRES_USER
+   - POSTGRES_PASSWORD
+  networks:
+   backend:
+    aliases:
+     - zabbix-web-apache-pgsql
+  labels:
+   com.zabbix.description: "Zabbix frontend on Apache web-server with PostgreSQL database support"
+   com.zabbix.dbtype: "pgsql"
+
  web-nginx:
   ports:
-   - "${ZABBIX_WEB_NGINX_HTTP_PORT}:8080"
-   - "${ZABBIX_WEB_NGINX_HTTPS_PORT}:8443"
+   - name: web-http
+     target: 8080
+     published: "${ZABBIX_WEB_NGINX_HTTP_PORT}"
+     protocol: tcp
+     app_protocol: http
+   - name: web-https
+     target: 8443
+     published: "${ZABBIX_WEB_NGINX_HTTPS_PORT}"
+     protocol: tcp
+     app_protocol: https
   restart: "${RESTART_POLICY}"
   attach: false
   volumes:
@@ -234,13 +362,37 @@ services:
    com.zabbix.description: "Zabbix frontend on Nginx web-server with MySQL database support"
    com.zabbix.dbtype: "mysql"
 
+ web-nginx-pgsql:
+  extends:
+   service: web-nginx
+#  volumes:
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CA_FILE:/run/secrets/root-ca.pem:ro
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CERT_FILE:/run/secrets/client-cert.pem:ro
+#   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_KEY_FILE:/run/secrets/client-key.pem:ro
+  env_file:
+   - ${ENV_VARS_DIRECTORY}/.env_db_pgsql
+  secrets:
+   - POSTGRES_USER
+   - POSTGRES_PASSWORD
+  networks:
+   backend:
+    aliases:
+     - zabbix-web-nginx-pgsql
+  labels:
+   com.zabbix.description: "Zabbix frontend on Nginx web-server with PostgreSQL database support"
+   com.zabbix.dbtype: "pgsql"
+
  agent:
   init: true
   profiles:
    - full
    - all
   ports:
-   - "${ZABBIX_AGENT_PORT}:10050"
+   - name: zabbix-agent
+     target: 10050
+     published: "${ZABBIX_AGENT_PORT}"
+     protocol: tcp
+     app_protocol: zabbix-agent
   restart: "${RESTART_POLICY}"
   attach: false
   volumes:
@@ -282,7 +434,11 @@ services:
    - full
    - all
   ports:
-   - "${ZABBIX_AGENT2_PORT}:10050"
+   - name: zabbix-agent
+     target: 10050
+     published: "${ZABBIX_AGENT2_PORT}"
+     protocol: tcp
+     app_protocol: zabbix-agent
   restart: "${RESTART_POLICY}"
   attach: false
   volumes:
@@ -323,7 +479,10 @@ services:
    - full
    - all
   ports:
-   - "${ZABBIX_JAVA_GATEWAY_PORT}:10052"
+   - name: zabbix-java-gw
+     target: 10052
+     published: "${ZABBIX_JAVA_GATEWAY_PORT}"
+     protocol: tcp
   restart: "${RESTART_POLICY}"
   attach: false
   deploy:
@@ -357,12 +516,16 @@ services:
    - full
    - all
   ports:
-   - "${ZABBIX_SNMPTRAPS_PORT}:1162/udp"
+   - name: snmptrap
+     target: 1162
+     published: "${ZABBIX_SNMPTRAPS_PORT}"
+     protocol: udp
+     app_protocol: snmptrap
   restart: "${RESTART_POLICY}"
   attach: false
   read_only: true
   volumes:
-   - snmptraps:/var/lib/zabbix/snmptraps:rw
+   - snmptraps:/var/lib/zabbix/snmptraps:rwz
   tmpfs: /tmp
   deploy:
    resources:
@@ -392,7 +555,10 @@ services:
    - full
    - all
   ports:
-   - "${ZABBIX_WEB_SERVICE_PORT}:10053"
+   - name: zabbix-web-service
+     target: 10053
+     published: "${ZABBIX_WEB_SERVICE_PORT}"
+     protocol: tcp
   restart: "${RESTART_POLICY}"
   attach: false
   volumes:

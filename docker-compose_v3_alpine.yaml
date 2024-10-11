@@ -33,6 +33,18 @@ services:
   labels:
    com.zabbix.os: "${ALPINE_OS_TAG}"
 
+ zabbix-web-apache-mysql:
+  extends:
+   file: compose_zabbix_components.yaml
+   service: web-apache-mysql
+  image: "${ZABBIX_WEB_APACHE_MYSQL_IMAGE}:${ZABBIX_ALPINE_IMAGE_TAG}${ZABBIX_IMAGE_TAG_POSTFIX}"
+  volumes:
+   - /etc/timezone:/etc/timezone:ro
+  depends_on:
+   - mysql-server
+  labels:
+   com.zabbix.os: "${ALPINE_OS_TAG}"
+
  zabbix-web-nginx-mysql:
   extends:
    file: compose_zabbix_components.yaml
