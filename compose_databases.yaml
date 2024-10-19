@@ -38,39 +38,10 @@ services:
     aliases:
      - mysql-server
 
- postgres-server:
-  image: "${POSTGRESQL_IMAGE}:${POSTGRESQL_IMAGE_TAG}"
-#  command: -c ssl=on -c ssl_cert_file=/run/secrets/server-cert.pem -c ssl_key_file=/run/secrets/server-key.pem -c ssl_ca_file=/run/secrets/root-ca.pem
-  restart: "${RESTART_POLICY}"
-  attach: false
-  volumes:
-   - ${DATA_DIRECTORY}/var/lib/postgresql/data:/var/lib/postgresql/data:rw
-   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CA_FILE:/run/secrets/root-ca.pem:ro
-   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_CERT_FILE:/run/secrets/server-cert.pem:ro
-   - ${ENV_VARS_DIRECTORY}/.ZBX_DB_KEY_FILE:/run/secrets/server-key.pem:ro
-  env_file:
-   - ${ENV_VARS_DIRECTORY}/.env_db_pgsql
-   - path: ${ENV_VARS_DIRECTORY}/.env_db_pgsql_override
-     required: false
-  secrets:
-   - POSTGRES_USER
-   - POSTGRES_PASSWORD
-  stop_grace_period: 1m
-  networks:
-   database:
-    aliases:
-     - postgres-server
-
  db-data-mysql:
   image: busybox
   volumes:
    - ${DATA_DIRECTORY}/var/lib/mysql:/var/lib/mysql:rw
-
- db-data-pgsql:
-  image: busybox
-  attach: false
-  volumes:
-   - ${DATA_DIRECTORY}/var/lib/postgresql/data:/var/lib/postgresql/data:rw
 
  elasticsearch:
   image: "${ELASTICSEARCH_IMAGE}:${ELASTICSEARCH_IMAGE_TAG}"
